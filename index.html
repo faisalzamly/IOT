@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Security Dashboard (Realtime)</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#fff; --border:#e4e6ef;
+      --ok:#0a7a2f; --bad:#b00020; --warn:#b86b00; --muted:#6b7280;
+      --shadow: 0 10px 25px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    body{font-family: Arial, sans-serif; margin:18px; background:var(--bg); color:#111;}
+    header{display:flex; gap:12px; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:14px}
+    h1{font-size:20px; margin:0}
+    .topbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .pill{background:#fff; border:1px solid var(--border); border-radius:999px; padding:8px 12px; box-shadow:var(--shadow); font-size:14px}
+    .pill strong{margin-inline-start:6px}
+    .btn{cursor:pointer; border:1px solid var(--border); background:#fff; border-radius:10px; padding:9px 12px; box-shadow:var(--shadow); font-weight:bold}
+    .btn:hover{background:#f9f9f9}
+    .grid{display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:14px}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow)}
+    .title{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
+    .zone{font-size:18px; font-weight:bold}
+    .badge{padding:7px 12px; border-radius:999px; border:1px solid var(--border); font-weight:bold; font-size:13px; white-space:nowrap}
+    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)} .muted{color:var(--muted)}
+    .row{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px dashed #eceef6; font-size:15px}
+    .row:last-child{border-bottom:none}
+    code{background:#eef1f7; padding:2px 8px; border-radius:8px; font-size:12px}
+    .subgrid{display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px}
+    .mini{background:#fbfbfe; border:1px solid var(--border); border-radius:14px; padding:12px}
+    .mini h3{margin:0 0 8px; font-size:14px}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:8px; border-bottom:1px solid #eef0f7; text-align:right}
+    th{color:#111; font-weight:bold; background:#fafbff}
+    .hint{font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5}
+    .banner{margin-top:14px; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:#fff; box-shadow:var(--shadow)}
+    .big{grid-column: 1 / -1}
+    .hr{height:1px; background:#e9ebf4; margin:10px 0}
+    .toggle{display:flex; align-items:center; gap:8px; font-size:13px}
+    input[type="checkbox"]{width:18px; height:18px}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; background:#f2f4fb; padding:2px 6px; border-radius:6px; border:1px solid #e7e9f5}
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <h1>Smart Security Dashboard</h1>
+    <!-- <div class="hint">ESP32 يرسل: <span class="kbd">intruder / timestamp / seq</span> — التنبيهات والـLogs محلية (LocalStorage) على المتصفح.</div> -->
+  </div>
+
+  <div class="topbar">
+    <div class="pill">Status: <strong id="globalState">...</strong></div>
+    <div class="pill">Last Update: <strong id="globalTime">...</strong></div>
+    <div class="pill">Connection: <strong id="connState">...</strong></div>
+    <button class="btn" id="btnRefresh">Refresh</button>
+    <button class="btn" id="btnReset">Reset Session</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card" id="cardA">
+    <div class="title">
+      <div class="zone">Zone A</div>
+      <div id="badgeA" class="badge">...</div>
+    </div>
+
+    <div class="row"><span>State</span><span id="stateA">-</span></div>
+    <div class="row"><span>intruder</span><span id="intrA">-</span></div>
+    <div class="row"><span>seq</span><span id="seqA">-</span></div>
+    <div class="row"><span>time</span><span id="timeA">-</span></div>
+
+    <div class="subgrid">
+      <div class="mini">
+        <h3>Neighbour Alert</h3>
+        <div id="neighborA" class="muted">No alert</div>
+      </div>
+
+      <div class="mini">
+        <h3>Session Stats</h3>
+        <div class="row"><span>Intrusions</span><span id="intrCountA">0</span></div>
+        <div class="row"><span>Last Intrusion</span><span id="lastIntrA">-</span></div>
+      </div>
+
+      <div class="mini">
+        <h3>Latest Path</h3>
+        <div class="hint"><code>/camera/zoneA/latest</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="cardB">
+    <div class="title">
+      <div class="zone">Zone B</div>
+      <div id="badgeB" class="badge">...</div>
+    </div>
+
+    <div class="row"><span>State</span><span id="stateB">-</span></div>
+    <div class="row"><span>intruder</span><span id="intrB">-</span></div>
+    <div class="row"><span>seq</span><span id="seqB">-</span></div>
+    <div class="row"><span>time</span><span id="timeB">-</span></div>
+
+    <div class="subgrid">
+      <div class="mini">
+        <h3>Neighbour Alert</h3>
+        <div id="neighborB" class="muted">No alert</div>
+      </div>
+
+      <div class="mini">
+        <h3>Session Stats</h3>
+        <div class="row"><span>Intrusions</span><span id="intrCountB">0</span></div>
+        <div class="row"><span>Last Intrusion</span><span id="lastIntrB">-</span></div>
+      </div>
+
+      <div class="mini">
+        <h3>Latest Path</h3>
+        <div class="hint"><code>/camera/zoneB/latest</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner big">
+    <div class="title" style="margin:0">
+      <div class="zone">Live Tracking</div>
+      <label class="toggle">
+        <input type="checkbox" id="soundToggle" checked />
+        <span>Sound Alert</span>
+      </label>
+    </div>
+    <div class="hr"></div>
+    <div id="trackMsg" class="muted">Waiting for data...</div>
+    <div class="hint">تنبيه الجيران يعتمد على: تغيّر <span class="kbd">seq</span> + <span class="kbd">intruder=1</span>.</div>
+  </div>
+
+  <div class="card big">
+    <div class="title">
+      <div class="zone">Local Logs (آخر 10)</div>
+      <div class="badge muted"><code>localStorage</code></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="mini">
+        <h3>Zone A Logs</h3>
+        <div id="logsA" class="muted">Loading...</div>
+      </div>
+      <div class="mini">
+        <h3>Zone B Logs</h3>
+        <div id="logsB" class="muted">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CONFIG = {
+    DB_URL: "https://db-smart-camera-system-9e147-default-rtdb.europe-west1.firebasedatabase.app",
+    REFRESH_INTERVAL: 1500,
+    NEIGHBOR_TIMEOUT: 10000,
+    LOG_LIMIT: 10
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function fmt(ts){
+    if(!ts || ts < 10000) return "---";
+    return new Date(ts * 1000).toLocaleString();
+  }
+
+  function setZoneUI(zone, data){
+    const intr = data.intr === 1;
+    $(`badge${zone}`).textContent = intr ? "INTRUDER 🚨" : "SAFE ✅";
+    $(`badge${zone}`).className = "badge " + (intr ? "bad" : "ok");
+
+    $(`state${zone}`).textContent = intr ? "Intrusion" : "Normal";
+    $(`state${zone}`).className = intr ? "bad" : "ok";
+
+    $(`intr${zone}`).textContent = data.intr;
+    $(`seq${zone}`).textContent = data.seq;
+    $(`time${zone}`).textContent = fmt(data.ts);
+  }
+
+  let audioCtx = null;
+  function beep(){
+    if(!$("soundToggle").checked) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 800;
+      gain.gain.value = 0.08;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      setTimeout(()=>osc.stop(), 200);
+    }catch(e){}
+  }
+
+  function neighborAlert(target, source){
+    const el = $(`neighbor${target}`);
+    el.textContent = `⚠️ Alert from Zone ${source}`;
+    el.className = "warn";
+    setTimeout(()=>{
+      el.textContent = "No alert";
+      el.className = "muted";
+    }, CONFIG.NEIGHBOR_TIMEOUT);
+  }
+
+  async function fetchLatest(zone){
+    try{
+      const r = await fetch(`${CONFIG.DB_URL}/camera/zone${zone}/latest.json`, { cache:"no-store" });
+      const d = await r.json();
+      if(!d || d === "null") return null;
+      return {
+        intr: parseInt(d.intruder || 0),
+        ts: parseInt(d.timestamp || 0),
+        seq: parseInt(d.seq || 0)
+      };
+    }catch(e){ return null; }
+  }
+
+  function saveLocalLog(zone, data){
+    const key = `logs_${zone}`;
+    const logs = JSON.parse(localStorage.getItem(key) || "[]");
+    const entry = { t: fmt(data.ts), s: data.seq, i: data.intr };
+
+    if(logs.length > 0 && String(logs[0].s) === String(data.seq)) return;
+
+    logs.unshift(entry);
+    localStorage.setItem(key, JSON.stringify(logs.slice(0, CONFIG.LOG_LIMIT)));
+    renderLocalLogs(zone);
+  }
+
+  function renderLocalLogs(zone){
+    const key = `logs_${zone}`;
+    const logs = JSON.parse(localStorage.getItem(key) || "[]");
+    const holder = $(`logs${zone}`);
+
+    if(!logs || logs.length === 0){
+      holder.className = "muted";
+      holder.textContent = "No logs yet.";
+      return;
+    }
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>time</th>
+            <th>seq</th>
+            <th>state</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    logs.forEach(l=>{
+      html += `
+        <tr>
+          <td>${l.t}</td>
+          <td>${l.s}</td>
+          <td class="${l.i ? 'bad' : 'ok'}">${l.i ? 'intruder' : 'safe'}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    holder.className = "";
+    holder.innerHTML = html;
+  }
+
+  const sessionState = {
+    A: { lastSeq: null, count: 0, lastIntrTs: null },
+    B: { lastSeq: null, count: 0, lastIntrTs: null }
+  };
+
+  function setNeighborDefault(zone){
+    const el = $(`neighbor${zone}`);
+    el.textContent = "No alert";
+    el.className = "muted";
+  }
+
+  async function syncLatest(){
+    const [A,B] = await Promise.all([fetchLatest("A"), fetchLatest("B")]);
+
+    if(A){
+      setZoneUI("A", A);
+
+      if(sessionState.A.lastSeq !== A.seq){
+        if(A.intr === 1){
+          sessionState.A.count++;
+          sessionState.A.lastIntrTs = A.ts;
+          beep();
+          neighborAlert("B","A");
+          $("trackMsg").textContent = "Zone A intrusion detected → alerting B";
+        }
+        saveLocalLog("A", A);
+        sessionState.A.lastSeq = A.seq;
+      }
+
+      $("intrCountA").textContent = sessionState.A.count;
+      $("lastIntrA").textContent = sessionState.A.lastIntrTs ? fmt(sessionState.A.lastIntrTs) : "-";
+    }
+
+    if(B){
+      setZoneUI("B", B);
+
+      if(sessionState.B.lastSeq !== B.seq){
+        if(B.intr === 1){
+          sessionState.B.count++;
+          sessionState.B.lastIntrTs = B.ts;
+          beep();
+          neighborAlert("A","B");
+          $("trackMsg").textContent = "Zone B intrusion detected → alerting A";
+        }
+        saveLocalLog("B", B);
+        sessionState.B.lastSeq = B.seq;
+      }
+
+      $("intrCountB").textContent = sessionState.B.count;
+      $("lastIntrB").textContent = sessionState.B.lastIntrTs ? fmt(sessionState.B.lastIntrTs) : "-";
+    }
+
+    const online = !!(A || B);
+    $("connState").textContent = online ? "Online ✅" : "Offline ❌";
+    $("connState").className = online ? "ok" : "bad";
+
+    const anyIntr = (A?.intr === 1) || (B?.intr === 1);
+    $("globalState").textContent = anyIntr ? "⚠️ ALERT" : "✅ NORMAL";
+    $("globalState").className = anyIntr ? "bad" : "ok";
+
+    const maxTs = Math.max(A?.ts || 0, B?.ts || 0);
+    $("globalTime").textContent = maxTs ? fmt(maxTs) : "-";
+
+    if(!anyIntr && ($("trackMsg").textContent === "Waiting for data..." || $("trackMsg").textContent.includes("intrusion"))){
+      $("trackMsg").textContent = "Monitoring...";
+    }
+  }
+
+  $("btnRefresh").onclick = async ()=>{
+    await syncLatest();
+    renderLocalLogs("A");
+    renderLocalLogs("B");
+  };
+
+  $("btnReset").onclick = ()=>{
+    localStorage.removeItem("logs_A");
+    localStorage.removeItem("logs_B");
+
+    sessionState.A.lastSeq = null; sessionState.A.count = 0; sessionState.A.lastIntrTs = null;
+    sessionState.B.lastSeq = null; sessionState.B.count = 0; sessionState.B.lastIntrTs = null;
+
+    $("intrCountA").textContent = "0"; $("intrCountB").textContent = "0";
+    $("lastIntrA").textContent = "-"; $("lastIntrB").textContent = "-";
+    setNeighborDefault("A");
+    setNeighborDefault("B");
+    $("trackMsg").textContent = "Session reset. Waiting for new data...";
+
+    renderLocalLogs("A");
+    renderLocalLogs("B");
+  };
+
+  (async ()=>{
+    renderLocalLogs("A");
+    renderLocalLogs("B");
+    await syncLatest();
+    setInterval(syncLatest, CONFIG.REFRESH_INTERVAL);
+  })();
+</script>
+
+</body>
+</html>
